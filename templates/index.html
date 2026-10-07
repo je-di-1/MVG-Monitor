@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="{{ refresh_interval }}">
+  <title>{{ station_name }} · MVG Live</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="MVG Monitor Startseite">
+      <span class="brand-mark">M</span>
+      <span>MVG <b>MONITOR</b></span>
+    </a>
+    <div class="live-indicator"><span class="live-dot"></span> LIVE · MÜNCHEN</div>
+  </header>
+
+  <main>
+    <section class="page-heading">
+      <div>
+        <p class="eyebrow">U-BAHN · U6</p>
+        <h1>{{ station_name }}</h1>
+      </div>
+      <p class="updated">Aktualisiert <time>{{ current_time }}</time></p>
+    </section>
+
+    {% if errors %}
+    <section class="error-banner" role="alert" aria-live="assertive">
+      <span class="error-icon">!</span>
+      <div>
+        <strong>Verbindungsproblem</strong>
+        {% for error in errors %}<p>{{ error }}</p>{% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    <div class="dashboard-grid">
+      <section class="departures-panel" aria-labelledby="departures-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">GARCHING · U6</p>
+            <h2 id="departures-title">Abfahrten</h2>
+          </div>
+          <span class="count-label">{{ departures|length }} Verbindungen</span>
+        </div>
+
+        {% if departures %}
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th scope="col">Linie</th><th scope="col">Fahrtziel</th><th scope="col">Abfahrt</th><th scope="col">Steig</th></tr>
+            </thead>
+            <tbody>
+              {% for departure in departures %}
+              <tr class="{% if departure.cancelled %}cancelled{% endif %}">
+                <td><span class="line-badge">{{ departure.line }}</span></td>
+                <td class="destination-cell">
+                  <strong>{{ departure.destination }}</strong>
+                  {% if departure.cancelled %}<span class="row-note cancelled-note">Entfällt</span>
+                  {% elif departure.message %}<span class="row-note">{{ departure.message }}</span>{% endif %}
+                </td>
+                <td class="time-cell"><strong>{{ departure.time }}</strong><span class="row-note">{% if departure.cancelled %}--{% else %}{{ departure.minutes }} min{% endif %}</span></td>
+                <td class="platform-cell">{{ departure.platform or "–" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% elif not errors %}
+        <p class="empty-state">Derzeit sind keine Abfahrten gemeldet.</p>
+        {% else %}
+        <p class="empty-state">Sobald die Verbindung wieder steht, erscheinen hier die nächsten Abfahrten.</p>
+        {% endif %}
+        <p class="panel-footnote">Echtzeitdaten der Münchner Verkehrsgesellschaft</p>
+      </section>
+
+      <aside class="alerts-panel" aria-labelledby="alerts-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">BETRIEB &amp; VERKEHR</p>
+            <h2 id="alerts-title">Netzmeldungen</h2>
+          </div>
+          {% if alerts %}<span class="alert-count">{{ alerts|length }}</span>{% endif %}
+        </div>
+
+        {% if alerts %}
+          <ul class="alert-list">
+            {% for alert in alerts %}
+            <li class="alert-item">
+              <span class="alert-symbol" aria-hidden="true">{% if alert.type == "INCIDENT" %}!{% else %}i{% endif %}</span>
+              <div>
+                <h3>{{ alert.title }}</h3>
+                {% if alert.lines %}<p class="alert-lines">{{ alert.lines|join(" · ") }}</p>{% endif %}
+                {% if alert.description %}<p class="alert-description">{{ alert.description }}</p>{% endif %}
+                {% if alert.valid_to %}<p class="alert-validity">Gültig bis {{ alert.valid_to }}</p>{% endif %}
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
+        {% elif errors %}
+          <p class="empty-state">Meldungen können gerade nicht geladen werden.</p>
+        {% else %}
+          <div class="all-clear"><span aria-hidden="true">✓</span><p>Keine aktiven U6-Meldungen.</p></div>
+        {% endif %}
+        <p class="panel-footnote">Aktive Hinweise der MVG zur U6 und zum Bahnhof</p>
+      </aside>
+    </div>
+  </main>
+
+  <footer><span>MVG Monitor</span><span>Automatische Aktualisierung alle {{ refresh_interval // 60 }} min{% if refresh_interval < 60 %} · {{ refresh_interval }} s{% endif %}</span></footer>
+</body>
+</html>
